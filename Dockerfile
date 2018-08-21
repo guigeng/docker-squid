@@ -1,7 +1,7 @@
-FROM alpine as build
+FROM alpine:3.7 as build
 
 ENV SQUID_VER 4.2
-ENV SQUID_SIG_KEY EA31CC5E9488E5168D2DCC5EB268E706FF5CF463
+ENV SQUID_SIG_KEY B06884EDB779C89B044E64E3CD6DBF8EF3B17D3E
 
 RUN set -x && \
 	apk add --no-cache  \
@@ -24,8 +24,8 @@ RUN set -x && \
 RUN set -x && \
 	mkdir -p /tmp/build && \
 	cd /tmp/build && \
-    curl -SsL http://www.squid-cache.org/Versions/v${SQUID_VER%.*.*}/${SQUID_VER%.*}/squid-${SQUID_VER}.tar.gz -o squid-${SQUID_VER}.tar.gz && \
-	curl -SsL http://www.squid-cache.org/Versions/v${SQUID_VER%.*.*}/${SQUID_VER%.*}/squid-${SQUID_VER}.tar.gz.asc -o squid-${SQUID_VER}.tar.gz.asc	
+    curl -SsL http://www.squid-cache.org/Versions/v${SQUID_VER%%.*}/squid-${SQUID_VER}.tar.gz -o squid-${SQUID_VER}.tar.gz && \
+	curl -SsL http://www.squid-cache.org/Versions/v${SQUID_VER%%.*}/squid-${SQUID_VER}.tar.gz.asc -o squid-${SQUID_VER}.tar.gz.asc
 	
 RUN set -x && \
 	cd /tmp/build && \
@@ -71,6 +71,7 @@ RUN set -x && \
 		--enable-arp-acl \
 		--enable-openssl \
 		--enable-ssl-crtd \
+		--enable-security-cert-generators="file" \
 		--enable-ident-lookups \
 		--enable-useragent-log \
 		--enable-cache-digests \
@@ -97,7 +98,7 @@ RUN set -x && \
 	make -j $(grep -cs ^processor /proc/cpuinfo) && \
 	make install
 
-FROM alpine:3.8
+FROM alpine:3.7
 	
 ENV SQUID_CONFIG_FILE /etc/squid/squid.conf
 ENV TZ Europe/Moscow
@@ -110,8 +111,8 @@ RUN apk add --no-cache \
 		libstdc++ \
 		heimdal-libs \
 		libcap \
-		libressl2.7-libcrypto \
-		libressl2.7-libssl \
+		libressl2.6-libcrypto \
+		libressl2.6-libssl \
 		libltdl	
 
 COPY --from=build /etc/squid/ /etc/squid/
@@ -139,5 +140,4 @@ EXPOSE 3128/tcp
 
 USER squid
 
-CMD ["sh", "-c", "/usr/sbin/squid -f ${SQUID_CONFIG_FILE} -z && exec /usr/sbin/squid -f ${SQUID_CONFIG_FILE} -NYCd 1"]
-
+CMD ["sh", "-c", "/usr/sbin/squid -f ${SQUID_CONFIG_FILE} --foreground -z && exec /usr/sbin/squid -f ${SQUID_CONFIG_FILE} --foreground -YCd 1"]
