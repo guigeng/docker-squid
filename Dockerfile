@@ -66,7 +66,8 @@ ENV SQUID_CONFIG_FILE=/etc/squid/squid.conf \
     TZ=Asia/Shanghai
 
 RUN set -x \
-    && deluser squid 2>/dev/null; delgroup squid 2>/dev/null \
+    && deluser squid 2>/dev/null \
+	&& delgroup squid 2>/dev/null \
 	&& addgroup -S squid -g 3128 && adduser -S -u 3128 -G squid -g squid -H -D -s /bin/false -h /var/cache/squid squid \
 	&& apk add --no-cache libstdc++ heimdal-libs libcap libressl2.6-libcrypto libressl2.6-libssl libltdl 
 
@@ -78,8 +79,8 @@ COPY --from=build /usr/sbin/squid /usr/sbin/squid
 RUN install -d -o squid -g squid \
 		/var/cache/squid \
 		/var/log/squid \
-		/var/run/squid && \
-	chmod +x /usr/lib/squid/* \
+		/var/run/squid \
+	&& chmod +x /usr/lib/squid/* \
 	&& echo 'include /etc/squid/conf.d/*.conf' >> "$SQUID_CONFIG_FILE" \
 	&& install -d -m 755 -o squid -g squid /etc/squid/conf.d
 	
