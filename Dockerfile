@@ -1,7 +1,4 @@
-FROM alpine:3.8 as build
-
-ENV SQUID_VER 4.2
-ENV SQUID_SIG_KEY B06884EDB779C89B044E64E3CD6DBF8EF3B17D3E
+FROM alpine:3.7 as build
 
 RUN set -x && \
 	apk add --no-cache  \
@@ -19,28 +16,13 @@ RUN set -x && \
 		heimdal-dev \
 		libtool \
 		libcap-dev \
-		linux-headers
-
-RUN set -x && \
-	mkdir -p /tmp/build && \
+		linux-headers \
+	&& mkdir -p /tmp/build && \
 	cd /tmp/build && \
-    curl -SsL http://www.squid-cache.org/Versions/v${SQUID_VER%%.*}/squid-${SQUID_VER}.tar.gz -o squid-${SQUID_VER}.tar.gz && \
-	curl -SsL http://www.squid-cache.org/Versions/v${SQUID_VER%%.*}/squid-${SQUID_VER}.tar.gz.asc -o squid-${SQUID_VER}.tar.gz.asc
-	
-RUN set -x && \
-	cd /tmp/build && \
-	export GNUPGHOME="$(mktemp -d)" && \
-	( \
-	 gpg --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys ${SQUID_SIG_KEY} || \
-     gpg --keyserver hkp://ipv4.pool.sks-keyservers.net   --recv-keys ${SQUID_SIG_KEY} ||  \
-     gpg --keyserver hkp://pgp.mit.edu:80                 --recv-keys ${SQUID_SIG_KEY} \
-	) && \
-	gpg --batch --verify squid-${SQUID_VER}.tar.gz.asc squid-${SQUID_VER}.tar.gz && \
-	rm -rf "$GNUPGHOME"
-	
-RUN set -x && \
+    curl -SsL http://www.squid-cache.org/Versions/v4/squid-4.2.tar.gz -o squid-4.2.tar.gz \
+	&& \
 	cd /tmp/build && \	
-	tar --strip 1 -xzf squid-${SQUID_VER}.tar.gz && \
+	tar --strip 1 -xzf squid-4.2.tar.gz && \
 	\
 	CFLAGS="-g0 -O2" \
 	CXXFLAGS="-g0 -O2" \
@@ -91,10 +73,9 @@ RUN set -x && \
 		--with-large-files \
 		--with-default-user=squid \
 		--with-openssl \
-		--with-pidfile=/var/run/squid/squid.pid
+		--with-pidfile=/var/run/squid/squid.pid \
 
-RUN set -x && \
-	cd /tmp/build && \
+	&& cd /tmp/build && \
 	make -j $(grep -cs ^processor /proc/cpuinfo) && \
 	make install
 
@@ -139,6 +120,5 @@ VOLUME ["/var/cache/squid"]
 EXPOSE 3128/tcp
 
 USER squid
-
 
 CMD ["sh", "-c", "/usr/sbin/squid -f ${SQUID_CONFIG_FILE} --foreground -z && exec /usr/sbin/squid -f ${SQUID_CONFIG_FILE} --foreground -YCd 1"]
