@@ -4,7 +4,7 @@ RUN set -x \
 	&& apk add --no-cache gcc g++ libc-dev curl gnupg libressl-dev perl-dev autoconf automake make pkgconfig heimdal-dev libtool libcap-dev 	linux-headers \
 	&& mkdir -p /tmp/build \
 	&& cd /tmp/build \
-	&& wget http://www.squid-cache.org/Versions/v4/squid-4.2.tar.gz \
+	&& curl -SsL http://www.squid-cache.org/Versions/v4//squid-4.2.tar.gz -o squid-4.2.tar.gz \
 	&& tar --strip 1 -xzf squid-4.2.tar.gz \
 	&& \
 	CFLAGS="-g0 -O2" \
