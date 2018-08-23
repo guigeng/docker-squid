@@ -80,20 +80,20 @@ RUN install -d -o squid -g squid \
 		/var/log/squid \
 		/var/run/squid \
 	&& chmod +x /usr/lib/squid/* \
-	&& echo 'include /etc/squid/conf.d/*.conf' >> "$SQUID_CONFIG_FILE" \
+	&& echo 'logfile_rotate 0' >> "$SQUID_CONFIG_FILE" \
+	&& echo 'cache_store_log none' >> "$SQUID_CONFIG_FILE" \
+	&& echo "workers $(grep -cs ^processor /proc/cpuinfo)" >> "$SQUID_CONFIG_FILE" \
 	&& install -d -m 755 -o squid -g squid /etc/squid/conf.d
 	
-COPY squid-log.conf /etc/squid/conf.d/
-
 RUN	set -x \
     && apk add --no-cache --virtual .tz alpine-conf tzdata \
 	&& /sbin/setup-timezone -z $TZ \
 	&& apk del .tz 	
 	
-VOLUME ["/var/cache/squid"]	
+VOLUME ["/var/cache/squid","/var/log/squid"]
 
 EXPOSE 3128/tcp
 
 USER squid
 
-CMD ["sh", "-c", "/usr/sbin/squid -f ${SQUID_CONFIG_FILE} --foreground -z && exec /usr/sbin/squid -f ${SQUID_CONFIG_FILE} --foreground -YCd 1"]
+CMD ["sh", "-c", "/usr/sbin/squid -f ${SQUID_CONFIG_FILE} --foreground -z && exec /usr/sbin/squid -f ${SQUID_CONFIG_FILE} --foreground -sYC"]
