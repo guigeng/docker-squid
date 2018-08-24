@@ -63,7 +63,7 @@ RUN set -x \
 FROM alpine:3.7
 	
 ENV SQUID_CONFIG_FILE=/etc/squid/squid.conf \
-    TZ=Asia/Shanghai
+    TZ=Asia/Shanghai 
 
 RUN set -x \
     && deluser squid 2>/dev/null; delgroup squid 2>/dev/null; \
@@ -74,26 +74,27 @@ COPY --from=build /etc/squid/ /etc/squid/
 COPY --from=build /usr/lib/squid/ /usr/lib/squid/
 COPY --from=build /usr/share/squid/ /usr/share/squid/
 COPY --from=build /usr/sbin/squid /usr/sbin/squid
+COPY entrypoint.sh /sbin/
 		
 RUN install -d -o squid -g squid \
 		/var/cache/squid \
 		/var/log/squid \
 		/var/run/squid \
 	&& chmod +x /usr/lib/squid/* \
+	&& chown -R squid:squid /etc/squid \
 	&& echo 'logfile_rotate 0' >> "$SQUID_CONFIG_FILE" \
 	&& echo 'cache_store_log none' >> "$SQUID_CONFIG_FILE" \
-	&& echo "workers $(grep -cs ^processor /proc/cpuinfo)" >> "$SQUID_CONFIG_FILE" \
-	&& install -d -m 755 -o squid -g squid /etc/squid/conf.d
-	
-RUN	set -x \
     && apk add --no-cache --virtual .tz alpine-conf tzdata \
+	&& echo 'workers 1' >> "$SQUID_CONFIG_FILE" \
 	&& /sbin/setup-timezone -z $TZ \
 	&& apk del .tz 	
 	
-VOLUME ["/var/cache/squid","/var/log/squid"]
+	
+VOLUME ["/var/log/squid"]
 
 EXPOSE 3128/tcp
 
-USER squid
+#USER squid
 
-CMD ["sh", "-c", "/usr/sbin/squid -f ${SQUID_CONFIG_FILE} --foreground -z && exec /usr/sbin/squid -f ${SQUID_CONFIG_FILE} --foreground -sYC"]
+ENTRYPOINT ["/sbin/entrypoint.sh"]
+#CMD ["sh", "-c", "echo $WORKERS>>${SQUID_CONFIG_FILE} && exec /usr/sbin/squid -f ${SQUID_CONFIG_FILE} --foreground -sYC"]
